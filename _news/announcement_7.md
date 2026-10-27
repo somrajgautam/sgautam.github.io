@@ -1,0 +1,8 @@
+---
+layout: post
+date: 2025-11-16 8:00:00-0400
+inline: true
+related_posts: false
+---
+
+🎉 Excited to share that our paper "<a href="https://arxiv.org/abs/2503.19285">No Black Box Anymore: Demystifying Clinical Predictive Modeling with Temporal-Feature Cross Attention Mechanism</a>" has been awarded 3rd Place in the <a href="https://amia.org/about-amia/amia-awards/research-awards/amia-student-paper-award-winners">AMIA 2025 Annual Symposium Student Paper Competition</a>!🎉

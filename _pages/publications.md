@@ -1,0 +1,792 @@
+---
+layout: page
+permalink: /publications/
+title: Research
+nav_title: Research
+description:  
+nav: true
+nav_order: 2
+---
+
+<!-- _pages/publications.md -->
+
+<!-- Paper Reviewing Section -->
+<div class="paper-reviewing-section" style="margin-bottom: 3rem;">
+  <h2>Paper Review</h2>
+  
+  <div style="display: flex; gap: 2rem; align-items: flex-start; flex-wrap: wrap;">
+    <!-- Bar Chart -->
+    <div style="flex: 2; min-width: 300px;">
+      <canvas id="reviewChart" style="max-height: 400px;"></canvas>
+    </div>
+    
+    <!-- Review Details Box -->
+    <div style="flex: 1; min-width: 250px; padding: 1.5rem; background-color: var(--global-bg-color); border: 1px solid var(--global-divider-color); border-radius: 8px;">
+      <h3 id="reviewTitle" style="margin-top: 0; font-size: 1.2rem; transition: all 0.3s ease;">Total Reviews</h3>
+      <div id="reviewDetails" style="transition: all 0.3s ease;">
+        <canvas id="detailChart" style="max-height: 200px;"></canvas>
+        <p id="reviewTotal" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--global-divider-color); text-align: center; font-weight: bold;"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js?v=2"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Helper function to get theme-aware color
+    const getThemeColor = (cssVar, fallback) => {
+      return getComputedStyle(document.documentElement).getPropertyValue(cssVar).trim() || fallback;
+    };
+
+    // Helper function to check if current theme is dark
+    const isDarkTheme = () => {
+      return document.documentElement.getAttribute('data-theme') === 'dark';
+    };
+
+    // Helper function to get bar colors based on venue and theme
+    const getBarColors = () => {
+      const isDark = isDarkTheme();
+      const venues = Object.keys(reviewData);
+      const colors = {
+        background: [],
+        border: [],
+        hover: []
+      };
+
+      venues.forEach(venue => {
+        if (venue === 'NeurIPS' && isDark) {
+          // Red color for NeurIPS in dark theme
+          colors.background.push('rgba(239, 83, 80, 0.7)');
+          colors.border.push('rgba(239, 83, 80, 1)');
+          colors.hover.push('rgba(239, 83, 80, 0.9)');
+        } else if (venue === 'AMIA') {
+          colors.background.push('rgba(54, 162, 235, 0.7)');
+          colors.border.push('rgba(54, 162, 235, 1)');
+          colors.hover.push('rgba(54, 162, 235, 0.9)');
+        } else if (venue === 'ACM') {
+          colors.background.push('rgba(255, 99, 132, 0.7)');
+          colors.border.push('rgba(255, 99, 132, 1)');
+          colors.hover.push('rgba(255, 99, 132, 0.9)');
+        } else if (venue === 'Health Informatics') {
+          colors.background.push('rgba(75, 192, 192, 0.7)');
+          colors.border.push('rgba(75, 192, 192, 1)');
+          colors.hover.push('rgba(75, 192, 192, 0.9)');
+        } else if (venue === 'ARR') {
+          colors.background.push('rgba(255, 206, 86, 0.7)');
+          colors.border.push('rgba(255, 206, 86, 1)');
+          colors.hover.push('rgba(255, 206, 86, 0.9)');
+        } else if (venue === 'AAAI') {
+          colors.background.push('rgba(52, 73, 94, 0.7)');
+          colors.border.push('rgba(52, 73, 94, 1)');
+          colors.hover.push('rgba(52, 73, 94, 0.9)');
+        } else if (venue === 'ICLR') {
+          colors.background.push('rgba(153, 102, 255, 0.7)');
+          colors.border.push('rgba(153, 102, 255, 1)');
+          colors.hover.push('rgba(153, 102, 255, 0.9)');
+        } else if (venue === 'ICML') {
+          colors.background.push('rgba(102, 51, 153, 0.7)');
+          colors.border.push('rgba(102, 51, 153, 1)');
+          colors.hover.push('rgba(102, 51, 153, 0.9)');
+        } else if (venue === 'COLM') {
+          colors.background.push('rgba(46, 204, 113, 0.7)');
+          colors.border.push('rgba(46, 204, 113, 1)');
+          colors.hover.push('rgba(46, 204, 113, 0.9)');
+        } else if (venue === 'NeurIPS') {
+          // Default color for NeurIPS in light theme
+          colors.background.push('rgba(255, 159, 64, 0.7)');
+          colors.border.push('rgba(255, 159, 64, 1)');
+          colors.hover.push('rgba(255, 159, 64, 0.9)');
+        }
+      });
+
+      return colors;
+    };
+    
+    // Conference/Journal review data by year
+    const reviewData = {
+      'AMIA': {
+        '2025': 3
+      },
+      'ACM': {
+        '2025': 1
+      },
+      'Health Informatics': {
+        '2025': 2
+      },
+      'ARR': {
+        '2025': 8,
+        '2026': 8
+      },
+      'ICLR': {
+        '2025': 5
+      },
+      'NeurIPS':{
+        '2025': 3,
+        '2026': 4
+      },
+      'ICML': {
+        '2026': 6
+      },
+      'COLM': {
+        '2026': 1
+      },
+      'AAAI': {
+        '2026': 4
+      }
+    };
+
+    // Helpers to keep data clean and numeric
+    const normalizeYear = (year) => String(year).trim();
+    const normalizeCount = (value) => {
+      const numericValue = Number(value);
+      return Number.isFinite(numericValue) ? numericValue : 0;
+    };
+
+    const getYearEntries = (yearMap) => {
+      return Object.entries(yearMap)
+        .map(([year, count]) => ({
+          year: normalizeYear(year),
+          count: normalizeCount(count)
+        }))
+        .sort((a, b) => Number(a.year) - Number(b.year));
+    };
+
+    const getTotalsByYear = () => {
+      const totals = {};
+      Object.values(reviewData).forEach(venue => {
+        getYearEntries(venue).forEach(({ year, count }) => {
+          totals[year] = (totals[year] ?? 0) + count;
+        });
+      });
+      return Object.entries(totals)
+        .map(([year, count]) => ({ year, count }))
+        .sort((a, b) => Number(a.year) - Number(b.year));
+    };
+
+    // Calculate totals for bar chart
+    const chartData = Object.keys(reviewData).map(venue => {
+      return Object.values(reviewData[venue]).reduce((total, value) => {
+        return total + normalizeCount(value);
+      }, 0);
+    });
+
+    const ctx = document.getElementById('reviewChart');
+    const reviewTitle = document.getElementById('reviewTitle');
+    const reviewDetails = document.getElementById('reviewDetails');
+    const detailCanvas = document.getElementById('detailChart');
+    const detailCtx = detailCanvas ? detailCanvas.getContext('2d') : null;
+    const reviewTotal = document.getElementById('reviewTotal');
+    let detailChart = null;
+
+    // Color palette for different years
+    const yearColors = {
+      '2023': {
+        bg: 'rgba(255, 99, 132, 0.7)',
+        border: 'rgba(255, 99, 132, 1)'
+      },
+      '2024': {
+        bg: 'rgba(54, 162, 235, 0.7)',
+        border: 'rgba(54, 162, 235, 1)'
+      },
+      '2025': {
+        bg: 'rgba(75, 192, 192, 0.7)',
+        border: 'rgba(75, 192, 192, 1)'
+      },
+      '2026': {
+        bg: 'rgba(255, 159, 64, 0.7)',
+        border: 'rgba(255, 159, 64, 1)'
+      }
+    };
+
+    // Custom plugin to draw values on top of bars
+    const valueOnTopPlugin = {
+      id: 'valueOnTop',
+      afterDatasetsDraw: function(chart) {
+        const ctx = chart.ctx;
+        const textColor = getThemeColor('--global-text-color', '#000');
+        chart.data.datasets.forEach(function(dataset, i) {
+          const meta = chart.getDatasetMeta(i);
+          if (!meta.hidden) {
+            meta.data.forEach(function(element, index) {
+              // Draw the text
+              ctx.fillStyle = textColor;
+              ctx.font = 'bold 12px Arial';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'bottom';
+              
+              const dataString = dataset.data[index].toString();
+              const padding = 5;
+              const position = element.tooltipPosition();
+              ctx.fillText(dataString, position.x, position.y - padding);
+            });
+          }
+        });
+      }
+    };
+
+    const ensureDetailChart = () => {
+      if (!detailCtx) {
+        return null;
+      }
+
+      if (!detailChart) {
+        detailChart = new Chart(detailCtx, {
+          type: 'bar',
+          plugins: [valueOnTopPlugin],
+          data: {
+            labels: [],
+            datasets: [{
+              label: 'Reviews',
+              data: [],
+              backgroundColor: [],
+              borderColor: [],
+              borderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            parsing: false,
+            layout: {
+              padding: {
+                top: 30
+              }
+            },
+            plugins: {
+              legend: {
+                display: false
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return context.parsed.y + ' review' + (context.parsed.y > 1 ? 's' : '');
+                  }
+                }
+              }
+            },
+            scales: {
+              y: {
+                type: 'linear',
+                beginAtZero: true,
+                min: 0,
+                suggestedMax: 5,
+                ticks: {
+                  stepSize: 1,
+                  precision: 0,
+                  color: getThemeColor('--global-text-color', '#000')
+                },
+                grid: {
+                  color: getThemeColor('--global-divider-color', 'rgba(0,0,0,0.1)')
+                }
+              },
+              x: {
+                type: 'category',
+                offset: true,
+                grid: {
+                  display: false
+                },
+                ticks: {
+                  autoSkip: false,
+                  color: getThemeColor('--global-text-color', '#000')
+                }
+              }
+            },
+            elements: {
+              bar: {
+                borderWidth: 2
+              }
+            },
+            animation: {
+              duration: 450
+            }
+          }
+        });
+      }
+
+      return detailChart;
+    };
+
+    const updateDetailChart = ({ years, counts, backgroundColors, borderColors, suggestedMax }) => {
+      const chart = ensureDetailChart();
+      if (!chart) {
+        return;
+      }
+
+      chart.data.labels = years;
+      chart.data.datasets[0].data = counts;
+      chart.data.datasets[0].backgroundColor = backgroundColors;
+      chart.data.datasets[0].borderColor = borderColors;
+      chart.options.scales.y.suggestedMax = Math.max(suggestedMax, 1);
+      
+      // Update theme colors
+      const textColor = getThemeColor('--global-text-color', '#000');
+      const gridColor = getThemeColor('--global-divider-color', 'rgba(0,0,0,0.1)');
+      chart.options.scales.y.ticks.color = textColor;
+      chart.options.scales.y.grid.color = gridColor;
+      chart.options.scales.x.ticks.color = textColor;
+      
+      chart.update();
+    };
+
+    // Function to show total reviews
+    function showTotalReviews() {
+      reviewTitle.textContent = 'Total Reviews';
+      const totalsByYear = getTotalsByYear();
+      const years = totalsByYear.map(entry => entry.year);
+      const counts = totalsByYear.map(entry => entry.count);
+      const grandTotal = counts.reduce((sum, value) => sum + value, 0);
+      const maxCount = counts.length ? Math.max(...counts) : 0;
+      const backgroundColors = years.map(year => yearColors[year]?.bg || 'rgba(153, 102, 255, 0.7)');
+      const borderColors = years.map(year => yearColors[year]?.border || 'rgba(153, 102, 255, 1)');
+      
+      console.log('Total reviews by year:', totalsByYear);
+      console.log('Years:', years);
+      console.log('Counts:', counts);
+      
+      updateDetailChart({
+        years,
+        counts,
+        backgroundColors,
+        borderColors,
+        suggestedMax: maxCount + 2
+      });
+      
+      reviewTotal.textContent = `Total: ${grandTotal} reviews`;
+    }
+
+    // Function to show specific venue details
+    function showVenueDetails(venue) {
+      reviewTitle.textContent = venue;
+      const data = reviewData[venue];
+      const yearEntries = getYearEntries(data);
+      const years = yearEntries.map(entry => entry.year);
+      const counts = yearEntries.map(entry => entry.count);
+      const total = counts.reduce((sum, value) => sum + value, 0);
+      const maxCount = counts.length ? Math.max(...counts) : 0;
+      const backgroundColors = years.map(year => yearColors[year]?.bg || 'rgba(153, 102, 255, 0.7)');
+      const borderColors = years.map(year => yearColors[year]?.border || 'rgba(153, 102, 255, 1)');
+      
+      console.log('Venue:', venue, 'Years:', years, 'Counts:', counts);
+      
+      updateDetailChart({
+        years,
+        counts,
+        backgroundColors,
+        borderColors,
+        suggestedMax: maxCount + 2
+      });
+      
+      reviewTotal.textContent = `Total: ${total} review${total > 1 ? 's' : ''}`;
+    }
+
+    if (ctx && detailCtx) {
+      const barColors = getBarColors();
+      const chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: Object.keys(reviewData).map(label => {
+            // Split "Health Informatics" into two lines
+            if (label === 'Health Informatics') {
+              return ['Health', 'Informatics'];
+            }
+            return label;
+          }),
+          datasets: [{
+            label: 'Number of Reviews',
+            data: chartData,
+            backgroundColor: barColors.background,
+            borderColor: barColors.border,
+            borderWidth: 2,
+            hoverBackgroundColor: barColors.hover
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          interaction: {
+            mode: 'index',
+            intersect: true
+          },
+          plugins: {
+            legend: {
+              display: false
+            },
+            datalabels: {
+              display: false
+            },
+            title: {
+              display: true,
+              text: 'Reviews by Conference/Journal',
+              font: {
+                size: 16
+              },
+              color: getThemeColor('--global-text-color', '#000')
+            },
+            tooltip: {
+              enabled: true,
+              callbacks: {
+                label: function(context) {
+                  return context.parsed.y + ' review' + (context.parsed.y > 1 ? 's' : '');
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Number of Reviews',
+                font: {
+                  size: 14
+                },
+                color: getThemeColor('--global-text-color', '#000')
+              },
+              ticks: {
+                stepSize: 1,
+                color: getThemeColor('--global-text-color', '#000')
+              },
+              grid: {
+                color: getThemeColor('--global-divider-color', 'rgba(0,0,0,0.1)')
+              }
+            },
+            x: {
+              title: {
+                display: true,
+                text: 'Conference/Journal',
+                font: {
+                  size: 14
+                },
+                color: getThemeColor('--global-text-color', '#000')
+              },
+              ticks: {
+                color: getThemeColor('--global-text-color', '#000'),
+                font: {
+                  size: 14
+                },
+                maxRotation: 0,
+                minRotation: 0,
+                autoSkip: false
+              },
+              grid: {
+                color: getThemeColor('--global-divider-color', 'rgba(0,0,0,0.1)')
+              }
+            }
+          }
+        }
+      });
+
+      // Use canvas mousemove event for better hover detection
+      let lastHoveredIndex = -1;
+      
+      ctx.addEventListener('mousemove', function(evt) {
+        const points = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+        
+        if (points.length) {
+          const firstPoint = points[0];
+          const index = firstPoint.index ?? firstPoint._index;
+          
+          if (index !== undefined && lastHoveredIndex !== index) {
+            lastHoveredIndex = index;
+            const venue = Object.keys(reviewData)[index];
+            showVenueDetails(venue);
+          }
+        } else {
+          if (lastHoveredIndex !== -1) {
+            lastHoveredIndex = -1;
+            showTotalReviews();
+          }
+        }
+      });
+
+      // Reset to total when mouse leaves chart area
+      ctx.addEventListener('mouseleave', () => {
+        lastHoveredIndex = -1;
+        showTotalReviews();
+      });
+      
+      // Initialize with total reviews
+      showTotalReviews();
+
+      // Listen for theme changes to update tick colors
+      const updateChartsTheme = () => {
+        const textColor = getThemeColor('--global-text-color', '#000');
+        const gridColor = getThemeColor('--global-divider-color', 'rgba(0,0,0,0.1)');
+
+        // Update bar colors based on theme
+        const barColors = getBarColors();
+        chart.data.datasets[0].backgroundColor = barColors.background;
+        chart.data.datasets[0].borderColor = barColors.border;
+        chart.data.datasets[0].hoverBackgroundColor = barColors.hover;
+
+        // Update main chart
+        chart.options.scales.y.ticks.color = textColor;
+        chart.options.scales.y.grid.color = gridColor;
+        chart.options.scales.y.title.color = textColor;
+        chart.options.scales.x.ticks.color = textColor;
+        chart.options.scales.x.grid.color = gridColor;
+        chart.options.scales.x.title.color = textColor;
+        chart.options.plugins.title.color = textColor;
+        chart.update();
+
+        // Update detail chart if it exists
+        if (detailChart) {
+          detailChart.options.scales.y.ticks.color = textColor;
+          detailChart.options.scales.y.grid.color = gridColor;
+          detailChart.options.scales.x.ticks.color = textColor;
+          detailChart.update();
+        }
+      };
+
+      // Watch for theme changes
+      const observer = new MutationObserver(updateChartsTheme);
+      observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['data-theme', 'class']
+      });
+    }
+  });
+</script>
+
+---
+
+<!-- Publications Section -->
+<h2>Publications</h2>
+
+<!-- Bibsearch Feature -->
+<div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap;">
+  <div style="flex: 1; min-width: 200px;">
+    {% include bib_search.liquid %}
+  </div>
+  <div class="bib-category-filters" style="display: flex; gap: 0.4rem; align-items: center;">
+    <button class="bib-category-btn active" data-category="all">All</button>
+    <button class="bib-category-btn" data-category="llms">LLMs</button>
+    <button class="bib-category-btn" data-category="healthcare">Healthcare</button>
+  </div>
+  <div style="min-width: 150px;">
+    <label for="bibsort" style="margin-right: 0.5rem; font-size: 0.9rem;">Sort by:</label>
+    <select id="bibsort" class="bibsort-dropdown" style="padding: 0.4rem 0.8rem; border: 1px solid var(--global-divider-color); border-radius: 4px; background-color: var(--global-bg-color); color: var(--global-text-color); cursor: pointer; font-size: 0.9rem;">
+      <option value="time-desc">Time (Newest)</option>
+      <option value="time-asc">Time (Oldest)</option>
+      <option value="name-asc">Name (A-Z)</option>
+      <option value="name-desc">Name (Z-A)</option>
+    </select>
+  </div>
+</div>
+
+<div class="publications">
+
+{% bibliography %}
+
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const bibsortDropdown = document.getElementById('bibsort');
+
+  // Helper function to extract date from bibliography item
+  const extractDate = (item) => {
+    const monthMap = {
+      'January': 0, 'Jan': 0, 'February': 1, 'Feb': 1, 'March': 2, 'Mar': 2,
+      'April': 3, 'Apr': 3, 'May': 4, 'June': 5, 'Jun': 5,
+      'July': 6, 'Jul': 6, 'August': 7, 'Aug': 7, 'September': 8, 'Sep': 8,
+      'October': 9, 'Oct': 9, 'November': 10, 'Nov': 10, 'December': 11, 'Dec': 11
+    };
+
+    // Try to find date in .periodical div (jekyll-scholar format: "Sep 2025")
+    const periodicalDiv = item.querySelector('.periodical');
+    if (periodicalDiv) {
+      const periodicalText = periodicalDiv.textContent.trim();
+      // Match patterns like "Sep 2025", "September 2025", etc.
+      const dateMatch = periodicalText.match(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\b/i);
+      if (dateMatch) {
+        const monthName = dateMatch[1];
+        const month = monthMap[monthName] !== undefined ? monthMap[monthName] : 0;
+        const year = parseInt(dateMatch[2]);
+        return new Date(year, month, 1);
+      }
+    }
+
+    // Fallback: Try to find date in abbr element
+    const abbrElement = item.querySelector('abbr[data-original-title]');
+    if (abbrElement) {
+      const dateText = abbrElement.getAttribute('data-original-title');
+      const dateMatch = dateText.match(/(\w+)\s+(\d{4})/);
+      if (dateMatch) {
+        const month = monthMap[dateMatch[1]] || 0;
+        const year = parseInt(dateMatch[2]);
+        return new Date(year, month, 1);
+      }
+    }
+
+    // Fallback: Try to extract year only from text content
+    const text = item.textContent;
+    const yearMatch = text.match(/\b(19|20)\d{2}\b/);
+    if (yearMatch) {
+      return new Date(parseInt(yearMatch[0]), 0, 1);
+    }
+
+    return new Date(0); // Default to epoch if no date found
+  };
+
+  if (bibsortDropdown) {
+    bibsortDropdown.addEventListener('change', function() {
+      const sortBy = this.value;
+      const bibliography = document.querySelector('.publications');
+
+      if (!bibliography) return;
+
+      // Get all h2.bibliography elements (year headings)
+      const yearSections = Array.from(bibliography.querySelectorAll('h2.bibliography'));
+
+      // Collect year groups (h2 + all following elements until next h2)
+      const yearGroups = yearSections.map(yearH2 => {
+        const group = {
+          year: parseInt(yearH2.textContent.trim()),
+          elements: [yearH2]
+        };
+
+        let nextElement = yearH2.nextElementSibling;
+        while (nextElement && nextElement.tagName !== 'H2') {
+          group.elements.push(nextElement);
+          nextElement = nextElement.nextElementSibling;
+        }
+
+        return group;
+      });
+
+      if (sortBy.startsWith('time')) {
+        // Sort by full date (year, month, day)
+        yearGroups.sort((a, b) => {
+          if (sortBy === 'time-desc') {
+            return b.year - a.year; // Newest first (default)
+          } else {
+            return a.year - b.year; // Oldest first
+          }
+        });
+
+        // Reorder the DOM elements
+        yearGroups.forEach(group => {
+          group.elements.forEach(elem => bibliography.appendChild(elem));
+        });
+
+        // Sort papers by full date within each year
+        yearGroups.forEach(group => {
+          group.elements.forEach(elem => {
+            if (elem.tagName === 'OL') {
+              const listItems = Array.from(elem.querySelectorAll(':scope > li'));
+
+              // Store original index if not already stored
+              listItems.forEach((item, index) => {
+                if (!item.hasAttribute('data-original-index')) {
+                  item.setAttribute('data-original-index', index.toString());
+                }
+              });
+
+              // Sort by full date
+              listItems.sort((a, b) => {
+                const dateA = extractDate(a);
+                const dateB = extractDate(b);
+
+                if (sortBy === 'time-desc') {
+                  return dateB - dateA; // Newest first
+                } else {
+                  return dateA - dateB; // Oldest first
+                }
+              });
+
+              listItems.forEach(item => elem.appendChild(item));
+            }
+          });
+        });
+      } else {
+        // First, restore chronological year order (newest first)
+        yearGroups.sort((a, b) => b.year - a.year);
+        yearGroups.forEach(group => {
+          group.elements.forEach(elem => bibliography.appendChild(elem));
+        });
+
+        // Then sort by name (alphabetically within each year)
+        yearGroups.forEach(group => {
+          group.elements.forEach(elem => {
+            if (elem.tagName === 'OL') {
+              const listItems = Array.from(elem.querySelectorAll(':scope > li'));
+
+              // Store original index if not already stored
+              listItems.forEach((item, index) => {
+                if (!item.hasAttribute('data-original-index')) {
+                  item.setAttribute('data-original-index', index.toString());
+                }
+              });
+
+              listItems.sort((a, b) => {
+                // Extract title from the list item
+                const titleA = a.querySelector('.title')?.textContent.trim().toLowerCase() || '';
+                const titleB = b.querySelector('.title')?.textContent.trim().toLowerCase() || '';
+
+                if (sortBy === 'name-asc') {
+                  return titleA.localeCompare(titleB);
+                } else {
+                  return titleB.localeCompare(titleA);
+                }
+              });
+
+              // Reorder list items
+              listItems.forEach(item => elem.appendChild(item));
+            }
+          });
+        });
+      }
+    });
+
+    // Trigger default sort on page load (Time - Newest)
+    if (bibsortDropdown) {
+      // Trigger the change event to apply default sorting
+      const event = new Event('change');
+      bibsortDropdown.dispatchEvent(event);
+    }
+  }
+
+  // ---- Category filter buttons ----
+  var categoryBtns = document.querySelectorAll('.bib-category-btn');
+  if (categoryBtns.length) {
+    categoryBtns.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        // Update active state
+        categoryBtns.forEach(function(b) { b.classList.remove('active'); });
+        this.classList.add('active');
+
+        var cat = this.getAttribute('data-category');
+        var pubs = document.querySelector('.publications');
+        if (!pubs) return;
+
+        // Filter list items
+        var items = pubs.querySelectorAll('ol.bibliography > li');
+        items.forEach(function(li) {
+          var row = li.querySelector('.row[data-category]');
+          var itemCat = row ? row.getAttribute('data-category') : 'other';
+          if (cat === 'all' || itemCat === cat) {
+            li.style.display = '';
+            li.classList.remove('unloaded');
+          } else {
+            li.style.display = 'none';
+            li.classList.add('unloaded');
+          }
+        });
+
+        // Hide empty year sections
+        var yearHeadings = pubs.querySelectorAll('h2.bibliography');
+        yearHeadings.forEach(function(h2) {
+          var ol = h2.nextElementSibling;
+          if (ol && ol.tagName === 'OL') {
+            var visibleItems = ol.querySelectorAll('li:not(.unloaded)');
+            h2.style.display = visibleItems.length ? '' : 'none';
+            ol.style.display = visibleItems.length ? '' : 'none';
+          }
+        });
+      });
+    });
+  }
+});
+</script>

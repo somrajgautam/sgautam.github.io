@@ -1,0 +1,201 @@
+---
+layout: default
+---
+<div class="post">
+  <header class="post-header">
+    <h1 class="post-title">
+      {% if site.title == 'blank' %}
+        <span class="font-weight-bold">{{ site.first_name }}</span> {{ site.middle_name }}
+        <span class="font-weight-bold">{{ site.last_name }}</span>
+      {% else %}
+        {{ site.title }}
+      {% endif %}
+    </h1>
+    <p class="desc">
+      {{ page.subtitle }}<br>
+      <img src="https://hits.sh/yubol-bobo.github.io.svg?style=for-the-badge&label=Profile%20Views&color=9333ea" alt="Profile views" style="margin-top: 5px;" />
+    </p>
+  </header>
+
+  <article>
+    <div class="profile-content-wrapper">
+      {% if page.profile %}
+        <div class="profile float-{% if page.profile.align == 'left' %}left{% else %}right{% endif %}">
+          {% if page.profile.image %}
+            {% assign profile_image_path = page.profile.image | prepend: 'assets/img/' %}
+            {% if page.profile.image_circular %}
+              {% assign profile_image_class = 'img-fluid z-depth-1 rounded-circle' %}
+            {% else %}
+              {% assign profile_image_class = 'img-fluid z-depth-1
+        rounded' %}
+            {% endif %}
+            {% capture sizes %}(min-width: {{ site.max_width }}) {{ site.max_width | minus: 30 | times: 0.3}}px, (min-width: 576px)
+        30vw, 95vw"{% endcapture %}
+            {%
+              include figure.liquid loading="eager" path=profile_image_path class=profile_image_class sizes=sizes alt=page.profile.image
+              cache_bust=true
+            %}
+          {% endif %}
+          {% if page.profile.more_info %}
+            <div class="more-info">{{ page.profile.more_info }}</div>
+          {% else %}
+            <div class="typed-info" style="min-height: 3em; height: 3em; text-align: center; margin-bottom: 1rem;"></div>
+            <script src="https://cdn.jsdelivr.net/npm/typed.js@2.0.12"></script>
+            <script>
+              var options = {
+                strings: [
+                  "🎓 PhD Student @ CMU 🎓",
+                  "🎓 MS in Information Systems @ CMU 🎓",
+                  "🎓 BS in Applied mathematics @ UCSD 🎓",
+                  "💻 AI Researcher 💻",
+                  "📚 Lifelong Learner 📚"
+                ],
+                typeSpeed: 30,
+                backSpeed: 25,
+                backDelay: 2000,
+                startDelay: 500,
+                loop: true,
+                shuffle: false,
+                showCursor: false,
+                smartBackspace: true,
+                fadeOut: false,
+              };
+              var typed = new Typed(".typed-info", options);
+            </script>
+          {% endif %}
+        </div>
+      {% endif %}
+
+      <div class="clearfix">{{ content }}</div>
+    </div>
+
+    <div style="clear: both;"></div>
+
+    <!-- News -->
+    {% if page.announcements and page.announcements.enabled %}
+      <div class="animate-on-scroll">
+        <h2>
+          <a href="{{ '/news/' | relative_url }}" style="color: inherit">🎉 News</a>
+        </h2>
+        {% include news.liquid limit=true %}
+      </div>
+    {% endif %}
+
+    <!-- Separator between News and Selected Publications -->
+    {% if page.announcements and page.announcements.enabled and page.selected_papers %}
+      <hr class="section-divider">
+    {% endif %}
+
+    <!-- Selected papers -->
+    {% if page.selected_papers %}
+      <div class="animate-on-scroll">
+        <h2>
+          <a href="{{ '/publications/' | relative_url }}" style="color: inherit">⭐ Selected publications</a>
+        </h2>
+        {% include selected_papers.liquid %}
+      </div>
+    {% endif %}
+
+    {% assign xp_on = false %}
+    {% if page.experience and page.experience.enabled and site.data.experience and site.data.experience.size > 0 %}
+      {% assign xp_on = true %}
+    {% endif %}
+
+    <!-- Separator between Selected Publications and the next section (Experience or Awards) -->
+    {% if page.selected_papers and xp_on %}
+      <hr class="section-divider">
+    {% elsif page.selected_papers and page.awards and page.awards.enabled %}
+      <hr class="section-divider">
+    {% endif %}
+
+    <!-- Experience -->
+    {% if xp_on %}
+      <div class="animate-on-scroll">
+        <h2>💼 Work Experience</h2>
+        {% include experience.liquid %}
+      </div>
+    {% endif %}
+
+    <!-- Separator between Experience and Awards -->
+    {% if xp_on and page.awards and page.awards.enabled %}
+      <hr class="section-divider">
+    {% endif %}
+
+    <!-- Awards -->
+    {% if page.awards and page.awards.enabled %}
+      <div class="animate-on-scroll">
+        <h2>
+          <a href="{{ '/awards/' | relative_url }}" style="color: inherit">🏆 Awards</a>
+        </h2>
+        <div class="awards">
+          <ul>
+            <li><strong>2026</strong> - Presidential Fellowship, Carnegie Mellon University</li>
+            <li><strong>2025</strong> - TCS Presidential Fellowship, Carnegie Mellon University</li>
+            <li><strong>2024</strong> - <a href="https://www.cs.cmu.edu/cmlh/2024-generative-ai-fellows">CMLH Fellowship in Generative AI in Healthcare</a>, Carnegie Mellon University</li>
+            <li><strong>2023</strong> - <a href="https://www.cs.cmu.edu/cmlh/digital-health-archive/cmlh-digital-health-fellows-2023">CMLH Fellowship in Digital Health Innovation</a>, Carnegie Mellon University</li>
+            <!-- Add more awards here -->
+          </ul>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Separator between Awards and Latest posts -->
+    {% if page.awards and page.awards.enabled and page.latest_posts and page.latest_posts.enabled %}
+      <hr class="section-divider">
+    {% endif %}
+
+    <!-- Latest posts -->
+    {% if page.latest_posts and page.latest_posts.enabled %}
+      <div class="animate-on-scroll">
+        <h2>
+          <a href="{{ '/blog/' | relative_url }}" style="color: inherit">latest posts</a>
+        </h2>
+        {% include latest_posts.liquid %}
+      </div>
+    {% endif %}
+
+    <!-- Social -->
+    {% if page.social %}
+      <div class="social animate-on-scroll">
+        <div class="contact-icons">{% include social.liquid %}</div>
+
+        <div class="contact-note">{{ site.contact_note }}</div>
+      </div>
+    {% endif %}
+
+    <!-- GitHub Stats Section -->
+    {% if site.data.repositories.github_users %}
+      <hr class="section-divider">
+      <div class="animate-on-scroll">
+        <h2>🖥️ GitHub Activity</h2>
+
+      <!-- GitHub Contribution Heatmap -->
+      <div style="margin-top: 2rem;">
+        {% for user in site.data.repositories.github_users %}
+          <div class="repo p-2" style="max-width: 100%; overflow-x: auto;">
+            <a href="https://github.com/{{ user }}">
+              <img
+                class="only-light"
+                alt="{{ user }} contribution heatmap"
+                src="https://ghchart.rshah.org/2ea44f/{{ user }}"
+                style="width: 100%; min-width: 900px; height: auto;"
+              >
+              <img
+                class="only-dark"
+                alt="{{ user }} contribution heatmap"  
+                src="https://ghchart.rshah.org/39d353/{{ user }}"
+                style="width: 100%; min-width: 900px; height: auto; filter: invert(1) hue-rotate(180deg);"
+              >
+            </a>
+          </div>
+        {% endfor %}
+      </div>
+      </div>
+    {% endif %}
+
+    {% if site.newsletter and site.newsletter.enabled and site.footer_fixed %}
+      {% include newsletter.liquid center=true %}
+    {% endif %}
+
+  </article>
+</div>
